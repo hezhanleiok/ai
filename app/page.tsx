@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../lib/supabase'; // 修改为相对路径
 
 export default async function Home({ searchParams }: { searchParams: { q?: string } }) {
   const query = searchParams?.q || '';
