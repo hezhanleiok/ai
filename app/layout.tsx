@@ -40,7 +40,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/" className="font-black text-2xl text-blue-600 tracking-tighter">AI HUB</Link>
               <div className="hidden md:flex items-center space-x-8 text-sm font-bold text-gray-500">
                 <Link href="/" className="hover:text-blue-600 transition">首页</Link>
-                {/* 顶部新增：精品软件分类 */}
                 <Link href="/category/software" className="hover:text-blue-600 transition">精品软件</Link>
                 <Link href="/category/article" className="hover:text-blue-600 transition">深度文章</Link>
                 {isAdmin && (
@@ -73,7 +72,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <input value={email} onChange={(e)=>setEmail(e.target.value)} type="email" placeholder="您的邮箱..." required className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 transition" />
                 <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-blue-100">获取验证链接</button>
                 <div className="flex items-center gap-4 py-2"><div className="h-px flex-grow bg-gray-100"></div><span className="text-[10px] font-bold text-gray-400">OR</span><div className="h-px flex-grow bg-gray-100"></div></div>
-                {/* 恢复：GitHub 登录按钮 */}
                 <button type="button" onClick={() => signInWithGithub()} className="w-full flex items-center justify-center gap-2 border-2 py-4 rounded-2xl font-bold text-gray-600 hover:bg-gray-50"><Github size={20}/> GitHub 快速登录</button>
               </form>
             </div>
@@ -87,8 +85,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <a href="#" className="group transition hover:scale-125"><Youtube size={40} className="text-gray-300 group-hover:text-red-600 transition-colors" /></a>
               <a href="#" className="group transition hover:scale-125"><Twitter size={40} className="text-gray-300 group-hover:text-blue-400 transition-colors" /></a>
             </div>
-            {/* 增加 Google 审核必备链接 */}
-            <div className="flex justify-center space-x-8 text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">
+            {/* 字体已调大：text-base (16px)，颜色已加深：text-gray-600 */}
+            <div className="flex justify-center space-x-12 text-base font-black text-gray-600 uppercase tracking-widest mb-8">
               <Link href="/about" className="hover:text-blue-600 transition">关于我们</Link>
               <Link href="/privacy" className="hover:text-blue-600 transition">隐私政策</Link>
               <Link href="/contact" className="hover:text-blue-600 transition">联系合作</Link>
