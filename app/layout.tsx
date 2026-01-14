@@ -14,22 +14,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // 安全获取初始 Session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    // 监听登录状态变化
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
     return () => subscription.unsubscribe();
   }, []);
 
-  // 管理员判断逻辑：确保从环境变量读取安全值
-  const adminUid = process.env.NEXT_PUBLIC_ADMIN_UID || "";
-  const isAdmin = user && user.id === adminUid;
+  // 这里的变量名要和 Vercel 设置的一致
+  const isAdmin = user?.id === process.env.NEXT_PUBLIC_ADMIN_UID;
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     setLoading(false);
     if (error) alert("发送失败: " + error.message);
     else {
-      alert("验证链接已发送！请检查您的邮箱收件箱。");
+      alert("验证链接已发送！请前往邮箱查收并点击链接。");
       setShowAuthModal(false);
     }
   };
@@ -57,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex items-center space-x-10">
               <Link href="/" className="font-black text-2xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">AI HUB</Link>
               <div className="hidden md:flex items-center space-x-8 text-sm font-bold text-gray-500">
-                <Link href="/" className="hover:text-blue-600 transition">发现工具</Link>
+                <Link href="/" className="hover:text-blue-600">发现工具</Link>
                 {user && (
                   isAdmin ? (
                     <Link href="/admin" className="text-red-500 flex items-center gap-1 font-black bg-red-50 px-3 py-1 rounded-full animate-pulse"><ShieldCheck size={16}/> 管理后台</Link>
@@ -71,11 +62,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex items-center space-x-3">
               {user ? (
                 <div className="flex items-center gap-4">
-                  <img src={user.user_metadata.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`} className="w-9 h-9 rounded-full border shadow-sm" alt="avatar" />
-                  <button onClick={() => supabase.auth.signOut().then(() => window.location.reload())} className="text-sm font-bold text-gray-400 hover:text-red-500 transition">退出</button>
+                  <img src={user.user_metadata.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`} className="w-9 h-9 rounded-full border shadow-sm" />
+                  <button onClick={() => supabase.auth.signOut()} className="text-xs font-bold text-gray-400 hover:text-red-500">退出账号</button>
                 </div>
               ) : (
-                <button onClick={() => setShowAuthModal(true)} className="bg-blue-600 text-white px-6 py-2.5 rounded-2xl text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition">登录 / 注册</button>
+                <button onClick={() => setShowAuthModal(true)} className="bg-blue-600 text-white px-6 py-2.5 rounded-2xl text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-200">登录 / 注册</button>
               )}
             </div>
           </div>
@@ -84,33 +75,39 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="flex-grow">{children}</main>
 
         {showAuthModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative shadow-2xl animate-in fade-in zoom-in duration-300">
-              <button onClick={() => setShowAuthModal(false)} className="absolute right-6 top-6 text-gray-400"><X size={24}/></button>
-              <h3 className="text-3xl font-black text-center mb-8 text-gray-900">欢迎加入</h3>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
+            <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative shadow-2xl">
+              <button onClick={() => setShowAuthModal(false)} className="absolute right-6 top-6 text-gray-300 hover:text-gray-500"><X size={24}/></button>
+              <h3 className="text-3xl font-black text-center mb-8">开始使用</h3>
               <form onSubmit={handleEmailAuth} className="space-y-4">
                 <div className="relative group">
                   <Mail className="absolute left-4 top-4 text-gray-400" size={20}/>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="您的邮箱地址..." className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 font-medium" />
+                  <input value={email} onChange={(e)=>setEmail(e.target.value)} type="email" placeholder="输入邮箱地址..." className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 font-medium" />
                 </div>
-                <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all">
-                  {loading ? '正在发送...' : '邮箱一键登录'}
+                <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-blue-100">
+                  {loading ? '正在发送...' : '邮箱验证登录'}
                 </button>
-                <div className="flex items-center gap-4 py-4 text-gray-300"><div className="h-px flex-grow bg-gray-100"></div><span className="text-[10px] font-bold text-gray-400">OR</span><div className="h-px flex-grow bg-gray-100"></div></div>
-                <button type="button" onClick={() => signInWithGithub()} className="w-full flex items-center justify-center gap-3 border-2 border-gray-100 py-4 rounded-2xl font-bold text-gray-600 hover:bg-gray-50 transition-all"><Github size={20}/> GitHub 快速登录</button>
+                <div className="flex items-center gap-4 py-2"><div className="h-px flex-grow bg-gray-100"></div><span className="text-[10px] font-bold text-gray-400">OR</span><div className="h-px flex-grow bg-gray-100"></div></div>
+                <button type="button" onClick={() => signInWithGithub()} className="w-full flex items-center justify-center gap-2 border-2 border-gray-50 py-4 rounded-2xl font-bold text-gray-600 hover:bg-gray-50 transition-all"><Github size={20}/> GitHub 快速登录</button>
               </form>
             </div>
           </div>
         )}
 
-        <footer className="bg-white border-t border-gray-100 py-20">
+        <footer className="bg-white border-t border-gray-100 py-16">
           <div className="max-w-7xl mx-auto px-4 text-center">
             <div className="flex justify-center items-center space-x-12 mb-10">
-              <a href="#" className="group transition-transform hover:scale-125 duration-300"><Github size={40} className="text-gray-300 group-hover:text-[#24292e] transition-colors" /></a>
-              <a href="#" className="group transition-transform hover:scale-125 duration-300"><Youtube size={40} className="text-gray-300 group-hover:text-[#FF0000] transition-colors" /></a>
-              <a href="#" className="group transition-transform hover:scale-125 duration-300"><Twitter size={40} className="text-gray-300 group-hover:text-[#1DA1F2] transition-colors" /></a>
+              <a href="#" className="group transition-transform hover:scale-125 duration-300">
+                <Github size={40} className="text-gray-300 group-hover:text-[#24292e] transition-colors" />
+              </a>
+              <a href="#" className="group transition-transform hover:scale-125 duration-300">
+                <Youtube size={40} className="text-gray-300 group-hover:text-[#FF0000] transition-colors" />
+              </a>
+              <a href="#" className="group transition-transform hover:scale-125 duration-300">
+                <Twitter size={40} className="text-gray-300 group-hover:text-[#1DA1F2] transition-colors" />
+              </a>
             </div>
-            <p className="text-gray-400 text-xs tracking-widest uppercase font-black italic">© 2026 AI NAV HUB | 为数字游民赋能</p>
+            <p className="text-gray-400 text-xs tracking-widest font-black italic">© 2026 AI HUB | 为数字游民赋能</p>
           </div>
         </footer>
       </body>
