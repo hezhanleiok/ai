@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { Bookmark, Send, Clock, Settings, Zap, Star } from 'lucide-react';
 
 export default function UserDashboard() {
