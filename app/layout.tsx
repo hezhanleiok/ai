@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Github, Youtube, Twitter, ShieldCheck, X, Mail, UserCircle } from 'lucide-react'
 // 修改为正确的根目录相对路径
-import { signInWithGithub } from './lib/auth-client'
-import { supabase } from './lib/supabase'
+import { signInWithGithub } from '../lib/auth-client'
+import { supabase } from '../lib/supabase'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
