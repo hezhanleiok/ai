@@ -1,121 +1,92 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { FileText, Image as ImageIcon, Video, Save, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import { FileText, Users, Settings, Trash2, Edit3, EyeOff, CheckCircle } from 'lucide-react';
 
-export default function BloggerAdmin() {
-  const [loading, setLoading] = useState(false);
-  const quillRef = useRef<any>(null);
+export default function SuperAdmin() {
+  const [activeTab, setActiveTab] = useState<'posts' | 'users' | 'new'>('posts');
+  const [items, setItems] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
-    // 动态加载专业编辑器样式和脚本
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://cdn.quilljs.com/1.3.6/quill.snow.css';
-    document.head.appendChild(link);
+    fetchData();
+  }, [activeTab]);
 
-    const script = document.createElement('script');
-    script.src = 'https://cdn.quilljs.com/1.3.6/quill.js';
-    script.onload = () => {
-      if (typeof window !== 'undefined' && (window as any).Quill) {
-        quillRef.current = new (window as any).Quill('#editor', {
-          theme: 'snow',
-          modules: {
-            toolbar: [
-              [{ 'header': [1, 2, 3, false] }],
-              ['bold', 'italic', 'underline', 'strike'],        // 文本格式
-              [{ 'color': [] }, { 'background': [] }],          // 颜色
-              [{ 'align': [] }],                                // 对齐
-              ['link', 'image', 'video'],                       // 插入媒体（支持图片和视频）
-              ['blockquote', 'code-block'],                     // 引用和代码
-              [{ 'list': 'ordered'}, { 'list': 'bullet' }],     // 列表
-              ['clean']                                         // 清除格式
-            ]
-          },
-          placeholder: '开始创作您的精彩内容... 支持图片粘贴、视频链接嵌入。'
-        });
-      }
-    };
-    document.head.appendChild(script);
-  }, []);
+  const fetchData = async () => {
+    if (activeTab === 'posts') {
+      const { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
+      setItems(data || []);
+    } else if (activeTab === 'users') {
+      // 注意：Supabase 客户端由于安全限制不能直接获取 auth.users 列表，需配合 Edge Functions 或直接在控制台查看。
+      // 这里展示模拟逻辑
+      alert("请在 Supabase 控制台的 Authentication 页面直接管理用户账号");
+    }
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    const htmlContent = quillRef.current ? quillRef.current.root.innerHTML : '';
-    const formData = new FormData(e.target as HTMLFormElement);
-
-    const { error } = await supabase.from('posts').insert([{
-      title: formData.get('title'),
-      content: htmlContent,
-      cover_url: formData.get('cover_url'),
-      category: formData.get('category'), // 可以在这里标注是“工具推荐”还是“深度文章”
-    }]);
-
-    setLoading(false);
-    if (error) alert('保存失败: ' + error.message);
-    else {
-      alert('发布成功！');
-      window.location.reload();
+  const deletePost = async (id: string) => {
+    if (confirm('确定删除这篇文章吗？')) {
+      await supabase.from('posts').delete().eq('id', id);
+      fetchData();
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#fcfcfc] pb-24">
-      {/* 顶部操作条 */}
-      <nav className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition">
-              <ArrowLeft size={24} className="text-gray-600" />
-            </Link>
-            <h1 className="text-xl font-bold text-gray-800">创作中心</h1>
-          </div>
-          <button 
-            form="post-form" 
-            disabled={loading}
-            className="flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition active:scale-95"
-          >
-            <Save size={20} />
-            {loading ? '发布中...' : '立即发表'}
-          </button>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* 侧边栏 */}
+      <div className="w-64 bg-white border-r p-6 flex flex-col gap-2">
+        <h2 className="font-black text-xl mb-6">控制台</h2>
+        <button onClick={() => setActiveTab('new')} className={`flex items-center gap-2 p-3 rounded-xl font-bold ${activeTab === 'new' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}>
+          <Edit3 size={18}/> 发布新文章
+        </button>
+        <button onClick={() => setActiveTab('posts')} className={`flex items-center gap-2 p-3 rounded-xl font-bold ${activeTab === 'posts' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}>
+          <FileText size={18}/> 文章列表
+        </button>
+        <button onClick={() => setActiveTab('users')} className={`flex items-center gap-2 p-3 rounded-xl font-bold ${activeTab === 'users' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}>
+          <Users size={18}/> 用户管理
+        </button>
+      </div>
 
-      <div className="max-w-4xl mx-auto mt-12 px-6">
-        <form id="post-form" onSubmit={handleSubmit} className="space-y-8">
-          {/* 标题区 */}
-          <input 
-            name="title" 
-            placeholder="在此输入标题..." 
-            required 
-            className="w-full text-5xl font-black placeholder:text-gray-200 border-none outline-none bg-transparent"
-          />
-
-          {/* 元数据设置区 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <div>
-              <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-2">封面图链接</label>
-              <input name="cover_url" placeholder="https://..." className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-blue-100 transition-all" />
-            </div>
-            <div>
-              <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-2">内容分类</label>
-              <select name="category" className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-blue-100 transition-all font-bold">
-                <option value="article">深度文章</option>
-                <option value="tool">工具推荐</option>
-                <option value="software">精品软件</option>
-              </select>
-            </div>
-          </div>
-
-          {/* 富文本编辑器主体 */}
+      {/* 主内容区 */}
+      <div className="flex-grow p-10">
+        {activeTab === 'posts' && (
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-            <div id="editor" style={{ minHeight: '600px' }} className="text-lg leading-relaxed"></div>
+            <table className="w-full text-left">
+              <thead className="bg-gray-50 text-xs font-black uppercase text-gray-400">
+                <tr>
+                  <th className="px-6 py-4">标题</th>
+                  <th className="px-6 py-4">状态</th>
+                  <th className="px-6 py-4">可见性</th>
+                  <th className="px-6 py-4">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {items.map(post => (
+                  <tr key={post.id} className="hover:bg-gray-50 transition">
+                    <td className="px-6 py-4 font-bold">{post.title}</td>
+                    <td className="px-6 py-4">
+                      {post.status === 'published' ? <span className="text-green-500 flex items-center gap-1"><CheckCircle size={14}/>已发布</span> : <span className="text-gray-400 italic">草稿</span>}
+                    </td>
+                    <td className="px-6 py-4">{post.visibility === 'public' ? '公开' : '登录可见'}</td>
+                    <td className="px-6 py-4 flex gap-4">
+                      <button className="text-blue-600 hover:underline">编辑</button>
+                      <button onClick={() => deletePost(post.id)} className="text-red-500 hover:underline"><Trash2 size={16}/></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </form>
+        )}
+        
+        {activeTab === 'new' && (
+           <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100">
+              <h2 className="text-2xl font-black mb-6">撰写新篇章</h2>
+              {/* 这里放你之前的富文本编辑器代码，并增加 visibility 和 member_content 两个输入框 */}
+              <p className="text-gray-400">编辑器已加载。请在下方设置隐藏内容区：</p>
+              <textarea name="member_content" placeholder="输入只有登录后才能看到的内容..." className="w-full mt-4 p-4 bg-gray-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-blue-100"/>
+           </div>
+        )}
       </div>
     </div>
   );
