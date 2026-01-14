@@ -1,55 +1,132 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+'use client';
 
-@layer base {
-  body {
-    @apply antialiased text-gray-900;
-  }
-}
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { supabase } from '../../../lib/supabase';
+import { Lock, MessageCircle, Send } from 'lucide-react';
 
-/* --- 文章详情页排版美化 (去AI感、增加呼吸感) --- */
-/* 这里的 .ql-editor 是针对编辑器预览，.prose 是针对发布后的页面 */
-.ql-editor, .prose {
-  line-height: 1.8 !important; /* 强制开启 1.8 倍黄金行高 */
-  font-size: 1.1rem;
-}
+export default function ArticleDetail() {
+  const { id } = useParams();
+  const [post, setPost] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState('');
 
-.ql-editor p, .prose p {
-  margin-bottom: 1.5rem !important; /* 每个段落后的间距 */
-  color: #374151; /* 深灰色文字，缓解视觉疲劳 */
-}
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+    // 获取文章
+    supabase.from('posts').select('*').eq('id', id).single().then(({ data }) => setPost(data));
+    // 获取评论
+    fetchComments();
+  }, [id]);
 
-.ql-editor strong, .prose strong {
-  @apply text-blue-600 font-bold; /* 让所有加粗的文字自动呈现品牌蓝色 */
-}
+  const fetchComments = async () => {
+    const { data } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('post_id', id)
+      .order('created_at', { ascending: true });
+    setComments(data || []);
+  };
 
-.ql-editor h1, .prose h1,
-.ql-editor h2, .prose h2 {
-  @apply font-black text-gray-900 mt-10 mb-6 tracking-tight;
-  line-height: 1.3;
-}
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return alert('请先登录后再评论');
+    if (!newComment.trim()) return;
 
-.ql-editor h1, .prose h1 { @apply text-3xl; }
-.ql-editor h2, .prose h2 { @apply text-2xl border-l-4 border-blue-600 pl-4; }
+    const { error } = await supabase.from('comments').insert([
+      {
+        post_id: id,
+        content: newComment,
+        user_email: user.email,
+        // 如果你的表有头像字段，可以加上：user_avatar: user.user_metadata.avatar_url
+      }
+    ]);
 
-.ql-editor ul, .prose ul {
-  @apply list-disc pl-6 mb-6 space-y-3;
-}
+    if (error) alert('评论失败: ' + error.message);
+    else {
+      setNewComment('');
+      fetchComments();
+    }
+  };
 
-.ql-editor li, .prose li {
-  line-height: 1.6;
-}
+  if (!post) return <div className="p-20 text-center text-gray-400 font-bold">文章努力加载中...</div>;
 
-.ql-editor blockquote, .prose blockquote {
-  @apply border-l-4 border-gray-200 pl-6 italic text-gray-500 my-8;
-}
+  return (
+    <article className="max-w-4xl mx-auto py-20 px-6">
+      <h1 className="text-5xl font-black mb-10 leading-tight">{post.title}</h1>
+      
+      {/* 所有人可见内容 - 类名已改为 ql-editor 以适配 globals.css */}
+      <div className="ql-editor max-w-none mb-12" 
+           dangerouslySetInnerHTML={{ __html: post.content }} />
 
-.ql-editor img, .prose img {
-  @apply rounded-3xl shadow-lg my-10 max-w-full h-auto;
-}
+      {/* 隐藏内容拦截 */}
+      {post.member_content && (
+        <div className="mt-10 p-1 bg-gradient-to-b from-blue-50 to-white rounded-[2.5rem] border border-blue-100 overflow-hidden relative">
+          {user ? (
+            <div className="p-10">
+              <div className="text-blue-600 font-black mb-4 flex items-center gap-2 border-b border-blue-50 pb-4 italic">🔒 会员专享内容已解锁</div>
+              <div className="ql-editor" dangerouslySetInnerHTML={{ __html: post.member_content }} />
+            </div>
+          ) : (
+            <div className="p-16 text-center">
+               <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-100">
+                  <Lock size={32} />
+               </div>
+               <h3 className="text-2xl font-black mb-4 tracking-tighter">此部分内容仅限登录查看</h3>
+               <p className="text-gray-400 mb-8 font-medium">请登录后解锁完整工具链接和关键步骤</p>
+               <button onClick={() => window.location.href='/#login'} className="bg-gray-900 text-white px-10 py-4 rounded-2xl font-black shadow-lg">登录账号</button>
+            </div>
+          )}
+        </div>
+      )}
 
-/* --- 隐藏内容区域样式 --- */
-.member-lock-box {
-  @apply bg-blue-600 text-white p-8 rounded-[2.5rem] my-10 shadow-xl shadow-blue-100;
+      {/* --- 评论区开始 --- */}
+      <div className="mt-24 border-t pt-16">
+        <h2 className="text-3xl font-black mb-10 flex items-center gap-3">
+          <MessageCircle className="text-blue-600" /> 交流讨论 ({comments.length})
+        </h2>
+
+        {/* 评论列表 */}
+        <div className="space-y-8 mb-12">
+          {comments.map((comment) => (
+            <div key={comment.id} className="flex gap-4">
+              <div className="w-10 h-10 rounded-full bg-blue-50 flex-shrink-0 flex items-center justify-center font-bold text-blue-600">
+                {comment.user_email[0].toUpperCase()}
+              </div>
+              <div className="bg-gray-50 rounded-2xl p-6 flex-grow">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-black text-gray-900">{comment.user_email}</span>
+                  <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                    {new Date(comment.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                <p className="text-gray-600 font-medium leading-relaxed">{comment.content}</p>
+              </div>
+            </div>
+          ))}
+          {comments.length === 0 && <p className="text-gray-400 font-bold text-center py-10">暂无评论，快来抢沙发吧！</p>}
+        </div>
+
+        {/* 评论发表框 */}
+        {user ? (
+          <form onSubmit={handleSubmitComment} className="relative">
+            <textarea 
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="说点什么吧..." 
+              className="w-full bg-white border rounded-3xl p-6 h-32 focus:ring-4 focus:ring-blue-100 outline-none transition font-medium text-lg"
+            />
+            <button type="submit" className="absolute bottom-4 right-4 bg-blue-600 text-white p-3 rounded-2xl shadow-lg hover:scale-105 transition active:scale-95">
+              <Send size={20} />
+            </button>
+          </form>
+        ) : (
+          <div className="bg-gray-50 p-8 rounded-3xl text-center border-2 border-dashed border-gray-200">
+            <p className="text-gray-400 font-bold">登录后即可参与讨论 ✨</p>
+          </div>
+        )}
+      </div>
+    </article>
+  );
 }
