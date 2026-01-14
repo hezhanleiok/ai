@@ -1,39 +1,51 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { supabase } from '../../../lib/supabase';
-import Link from 'next/link';
 
-export default function Home() {
-  const [posts, setPosts] = useState<any[]>([]);
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+// 该文件在 app/articles/[id] 三级目录下，必须跳三级才能到根目录
+import { supabase } from '../../../lib/supabase';
+import { Lock } from 'lucide-react';
+
+export default function ArticleDetail() {
+  const { id } = useParams();
+  const [post, setPost] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // 获取最新发布的3篇文章
-    const fetchPosts = async () => {
-      const { data } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('status', 'published')
-        .order('created_at', { ascending: false })
-        .limit(3);
-      setPosts(data || []);
-    };
-    fetchPosts();
-  }, []);
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+    supabase.from('posts').select('*').eq('id', id).single().then(({ data }) => setPost(data));
+  }, [id]);
+
+  if (!post) return <div className="p-20 text-center text-gray-400 font-bold">文章努力加载中...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-20">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {posts.map((post) => (
-          <Link href={`/articles/${post.id}`} key={post.id} className="group bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all">
-            <img src={post.cover_url} className="w-full h-48 object-cover rounded-2xl mb-6" alt="封面" />
-            <h3 className="text-xl font-black mb-4 group-hover:text-blue-600 transition">{post.title}</h3>
-            <div className="flex justify-between items-center text-sm font-bold text-gray-400">
-              <span>阅读全文 →</span>
-              {post.member_content && <span className="text-blue-500">🔒 包含隐藏内容</span>}
+    <article className="max-w-4xl mx-auto py-20 px-6">
+      <h1 className="text-5xl font-black mb-10 leading-tight">{post.title}</h1>
+      
+      {/* 所有人可见内容 */}
+      <div className="prose prose-lg prose-blue max-w-none mb-12" 
+           dangerouslySetInnerHTML={{ __html: post.content }} />
+
+      {/* 隐藏内容拦截 */}
+      {post.member_content && (
+        <div className="mt-10 p-1 bg-gradient-to-b from-blue-50 to-white rounded-[2.5rem] border border-blue-100 overflow-hidden relative">
+          {user ? (
+            <div className="p-10">
+              <div className="text-blue-600 font-black mb-4 flex items-center gap-2 border-b border-blue-50 pb-4 italic">🔒 会员专享内容已解锁</div>
+              <div dangerouslySetInnerHTML={{ __html: post.member_content }} />
             </div>
-          </Link>
-        ))}
-      </div>
-    </div>
+          ) : (
+            <div className="p-16 text-center">
+               <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-100">
+                  <Lock size={32} />
+               </div>
+               <h3 className="text-2xl font-black mb-4 tracking-tighter">此部分内容仅限登录查看</h3>
+               <p className="text-gray-400 mb-8 font-medium">请登录后解锁完整工具链接和关键步骤</p>
+               <button onClick={() => window.location.href='/#login'} className="bg-gray-900 text-white px-10 py-4 rounded-2xl font-black shadow-lg">登录账号</button>
+            </div>
+          )}
+        </div>
+      )}
+    </article>
   );
 }
