@@ -1,93 +1,63 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { FileText, Users, Settings, Trash2, Edit3, EyeOff, CheckCircle } from 'lucide-react';
 
-export default function SuperAdmin() {
-  const [activeTab, setActiveTab] = useState<'posts' | 'users' | 'new'>('posts');
-  const [items, setItems] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+export default function ProfessionalAdmin() {
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, [activeTab]);
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    const formData = new FormData(e.currentTarget);
+    
+    const { error } = await supabase.from('posts').insert([{
+      title: formData.get('title'),
+      content: formData.get('content'),        // 普通内容（所有人可见）
+      member_content: formData.get('member_content'), // 关键内容（登录可见）
+      cover_url: formData.get('cover_url'),
+      category: formData.get('category'),
+      status: formData.get('status')           // 草稿或发布
+    }]);
 
-  const fetchData = async () => {
-    if (activeTab === 'posts') {
-      const { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
-      setItems(data || []);
-    } else if (activeTab === 'users') {
-      // 注意：Supabase 客户端由于安全限制不能直接获取 auth.users 列表，需配合 Edge Functions 或直接在控制台查看。
-      // 这里展示模拟逻辑
-      alert("请在 Supabase 控制台的 Authentication 页面直接管理用户账号");
-    }
-  };
-
-  const deletePost = async (id: string) => {
-    if (confirm('确定删除这篇文章吗？')) {
-      await supabase.from('posts').delete().eq('id', id);
-      fetchData();
+    setLoading(false);
+    if (error) alert('发布失败: ' + error.message);
+    else {
+      alert('文章发布成功！');
+      (e.target as HTMLFormElement).reset();
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* 侧边栏 */}
-      <div className="w-64 bg-white border-r p-6 flex flex-col gap-2">
-        <h2 className="font-black text-xl mb-6">控制台</h2>
-        <button onClick={() => setActiveTab('new')} className={`flex items-center gap-2 p-3 rounded-xl font-bold ${activeTab === 'new' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}>
-          <Edit3 size={18}/> 发布新文章
-        </button>
-        <button onClick={() => setActiveTab('posts')} className={`flex items-center gap-2 p-3 rounded-xl font-bold ${activeTab === 'posts' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}>
-          <FileText size={18}/> 文章列表
-        </button>
-        <button onClick={() => setActiveTab('users')} className={`flex items-center gap-2 p-3 rounded-xl font-bold ${activeTab === 'users' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}>
-          <Users size={18}/> 用户管理
-        </button>
-      </div>
+    <div className="max-w-5xl mx-auto py-12 px-4">
+      <form onSubmit={handleSubmit} className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-gray-100 space-y-8">
+        <div className="flex justify-between items-center">
+          <h2 className="text-3xl font-black">创作中心</h2>
+          <select name="status" className="bg-gray-100 px-4 py-2 rounded-xl font-bold text-sm">
+            <option value="published">立即发布</option>
+            <option value="draft">保存草稿</option>
+          </select>
+        </div>
 
-      {/* 主内容区 */}
-      <div className="flex-grow p-10">
-        {activeTab === 'posts' && (
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 text-xs font-black uppercase text-gray-400">
-                <tr>
-                  <th className="px-6 py-4">标题</th>
-                  <th className="px-6 py-4">状态</th>
-                  <th className="px-6 py-4">可见性</th>
-                  <th className="px-6 py-4">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {items.map(post => (
-                  <tr key={post.id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 font-bold">{post.title}</td>
-                    <td className="px-6 py-4">
-                      {post.status === 'published' ? <span className="text-green-500 flex items-center gap-1"><CheckCircle size={14}/>已发布</span> : <span className="text-gray-400 italic">草稿</span>}
-                    </td>
-                    <td className="px-6 py-4">{post.visibility === 'public' ? '公开' : '登录可见'}</td>
-                    <td className="px-6 py-4 flex gap-4">
-                      <button className="text-blue-600 hover:underline">编辑</button>
-                      <button onClick={() => deletePost(post.id)} className="text-red-500 hover:underline"><Trash2 size={16}/></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        
-        {activeTab === 'new' && (
-           <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100">
-              <h2 className="text-2xl font-black mb-6">撰写新篇章</h2>
-              {/* 这里放你之前的富文本编辑器代码，并增加 visibility 和 member_content 两个输入框 */}
-              <p className="text-gray-400">编辑器已加载。请在下方设置隐藏内容区：</p>
-              <textarea name="member_content" placeholder="输入只有登录后才能看到的内容..." className="w-full mt-4 p-4 bg-gray-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-blue-100"/>
-           </div>
-        )}
-      </div>
+        <input name="title" placeholder="文章标题..." required className="w-full text-4xl font-black border-none outline-none placeholder:text-gray-200" />
+
+        {/* 普通内容区 */}
+        <div>
+          <label className="block text-sm font-black text-gray-400 mb-2 uppercase tracking-widest">普通内容 (公开预览部分)</label>
+          <textarea name="content" rows={8} className="w-full p-6 bg-gray-50 rounded-2xl border-none focus:ring-4 focus:ring-blue-100 transition-all" placeholder="在此输入所有人都能看到的内容..." />
+        </div>
+
+        {/* 关键内容区 - 核心功能点 */}
+        <div className="p-8 bg-blue-50/50 rounded-[2rem] border-2 border-dashed border-blue-100">
+          <label className="block text-sm font-black text-blue-600 mb-2 uppercase tracking-widest">🔒 关键内容 (仅登录用户可见)</label>
+          <p className="text-xs text-blue-400 mb-4 font-bold">如果不填写此项，文章将默认全文公开。</p>
+          <textarea name="member_content" rows={6} className="w-full p-6 bg-white rounded-2xl border-none focus:ring-4 focus:ring-blue-100 transition-all" placeholder="在此输入只有登录后才能看到的关键步骤、链接或秘密..." />
+        </div>
+
+        <button disabled={loading} className="w-full bg-blue-600 text-white py-6 rounded-2xl font-black text-xl shadow-xl shadow-blue-100 hover:bg-blue-700 transition">
+          {loading ? '发布中...' : '确认发表'}
+        </button>
+      </form>
     </div>
   );
 }
