@@ -14,35 +14,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // 获取当前登录状态
+    // 安全获取初始 Session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
+      setUser(session?.user ?? null);
     });
 
-    // 监听状态变化
+    // 监听登录状态变化
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      setUser(session?.user ?? null);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // 权限判断：使用 Vercel 环境变量
-  const isAdmin = user?.id === process.env.NEXT_PUBLIC_ADMIN_UID;
+  // 管理员判断逻辑：确保从环境变量读取安全值
+  const adminUid = process.env.NEXT_PUBLIC_ADMIN_UID || "";
+  const isAdmin = user && user.id === adminUid;
 
-  // 邮箱登录逻辑
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return alert("请输入邮箱");
+    if (!email) return alert("请输入邮箱地址");
     setLoading(true);
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     setLoading(false);
     if (error) alert("发送失败: " + error.message);
     else {
-      alert("验证链接已发送！请检查您的邮箱。");
+      alert("验证链接已发送！请检查您的邮箱收件箱。");
       setShowAuthModal(false);
     }
   };
@@ -50,10 +50,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh">
       <body className="flex flex-col min-h-screen bg-[#fafafa] relative font-sans antialiased text-gray-900">
-        {/* 背景装饰 */}
         <div className="fixed inset-0 -z-10 h-full w-full bg-white [background:radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
         
-        {/* 导航栏 */}
         <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 h-20 flex justify-between items-center">
             <div className="flex items-center space-x-10">
@@ -74,7 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {user ? (
                 <div className="flex items-center gap-4">
                   <img src={user.user_metadata.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`} className="w-9 h-9 rounded-full border shadow-sm" alt="avatar" />
-                  <button onClick={() => supabase.auth.signOut()} className="text-sm font-bold text-gray-400 hover:text-red-500 transition">退出</button>
+                  <button onClick={() => supabase.auth.signOut().then(() => window.location.reload())} className="text-sm font-bold text-gray-400 hover:text-red-500 transition">退出</button>
                 </div>
               ) : (
                 <button onClick={() => setShowAuthModal(true)} className="bg-blue-600 text-white px-6 py-2.5 rounded-2xl text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition">登录 / 注册</button>
@@ -85,28 +83,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <main className="flex-grow">{children}</main>
 
-        {/* 弹窗 */}
         {showAuthModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative shadow-2xl animate-in fade-in zoom-in duration-300">
               <button onClick={() => setShowAuthModal(false)} className="absolute right-6 top-6 text-gray-400"><X size={24}/></button>
-              <h3 className="text-3xl font-black text-center mb-8">加入 AI HUB</h3>
+              <h3 className="text-3xl font-black text-center mb-8 text-gray-900">欢迎加入</h3>
               <form onSubmit={handleEmailAuth} className="space-y-4">
                 <div className="relative group">
-                  <Mail className="absolute left-4 top-4 text-gray-400 group-focus-within:text-blue-600" size={20}/>
+                  <Mail className="absolute left-4 top-4 text-gray-400" size={20}/>
                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="您的邮箱地址..." className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 font-medium" />
                 </div>
                 <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all">
                   {loading ? '正在发送...' : '邮箱一键登录'}
                 </button>
                 <div className="flex items-center gap-4 py-4 text-gray-300"><div className="h-px flex-grow bg-gray-100"></div><span className="text-[10px] font-bold text-gray-400">OR</span><div className="h-px flex-grow bg-gray-100"></div></div>
-                <button type="button" onClick={() => signInWithGithub()} className="w-full flex items-center justify-center gap-3 border-2 border-gray-100 py-4 rounded-2xl font-bold text-gray-600 hover:bg-gray-50"><Github size={20}/> GitHub 快速登录</button>
+                <button type="button" onClick={() => signInWithGithub()} className="w-full flex items-center justify-center gap-3 border-2 border-gray-100 py-4 rounded-2xl font-bold text-gray-600 hover:bg-gray-50 transition-all"><Github size={20}/> GitHub 快速登录</button>
               </form>
             </div>
           </div>
         )}
 
-        {/* 页脚彩色图标 */}
         <footer className="bg-white border-t border-gray-100 py-20">
           <div className="max-w-7xl mx-auto px-4 text-center">
             <div className="flex justify-center items-center space-x-12 mb-10">
