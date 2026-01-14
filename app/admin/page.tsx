@@ -1,77 +1,122 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import { FileText, Image as ImageIcon, Video, Save, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 export default function BloggerAdmin() {
-  const [activeTab, setActiveTab] = useState<'tool' | 'post'>('post');
   const [loading, setLoading] = useState(false);
+  const quillRef = useRef<any>(null);
 
-  const handlePostSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    // 动态加载专业编辑器样式和脚本
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdn.quilljs.com/1.3.6/quill.snow.css';
+    document.head.appendChild(link);
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.quilljs.com/1.3.6/quill.js';
+    script.onload = () => {
+      if (typeof window !== 'undefined' && (window as any).Quill) {
+        quillRef.current = new (window as any).Quill('#editor', {
+          theme: 'snow',
+          modules: {
+            toolbar: [
+              [{ 'header': [1, 2, 3, false] }],
+              ['bold', 'italic', 'underline', 'strike'],        // 文本格式
+              [{ 'color': [] }, { 'background': [] }],          // 颜色
+              [{ 'align': [] }],                                // 对齐
+              ['link', 'image', 'video'],                       // 插入媒体（支持图片和视频）
+              ['blockquote', 'code-block'],                     // 引用和代码
+              [{ 'list': 'ordered'}, { 'list': 'bullet' }],     // 列表
+              ['clean']                                         // 清除格式
+            ]
+          },
+          placeholder: '开始创作您的精彩内容... 支持图片粘贴、视频链接嵌入。'
+        });
+      }
+    };
+    document.head.appendChild(script);
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const formData = new FormData(e.currentTarget);
-    
+
+    const htmlContent = quillRef.current ? quillRef.current.root.innerHTML : '';
+    const formData = new FormData(e.target as HTMLFormElement);
+
     const { error } = await supabase.from('posts').insert([{
       title: formData.get('title'),
-      content: formData.get('content'), // 这里可以对接富文本组件的值
+      content: htmlContent,
       cover_url: formData.get('cover_url'),
-      video_url: formData.get('video_url'),
+      category: formData.get('category'), // 可以在这里标注是“工具推荐”还是“深度文章”
     }]);
 
     setLoading(false);
-    if (error) alert('发布失败: ' + error.message);
+    if (error) alert('保存失败: ' + error.message);
     else {
-      alert('文章已成功发表！');
-      (e.target as HTMLFormElement).reset();
+      alert('发布成功！');
+      window.location.reload();
     }
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-12 px-4">
-      <div className="flex gap-4 mb-10 bg-gray-100 p-2 rounded-2xl w-fit">
-        <button onClick={() => setActiveTab('post')} className={`px-6 py-2 rounded-xl font-bold transition ${activeTab === 'post' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>撰写文章</button>
-        <button onClick={() => setActiveTab('tool')} className={`px-6 py-2 rounded-xl font-bold transition ${activeTab === 'tool' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>发布工具</button>
-      </div>
-
-      {activeTab === 'post' ? (
-        <form onSubmit={handlePostSubmit} className="space-y-6 bg-white p-10 rounded-[2.5rem] shadow-2xl border border-gray-50">
-          <h2 className="text-3xl font-black mb-6">像 Blogger 一样创作</h2>
-          
-          <div>
-            <label className="block text-sm font-bold mb-2">文章标题</label>
-            <input name="title" placeholder="输入引人入胜的标题..." required className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-none focus:ring-4 focus:ring-blue-100 transition-all text-xl font-bold" />
+    <div className="min-h-screen bg-[#fcfcfc] pb-24">
+      {/* 顶部操作条 */}
+      <nav className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition">
+              <ArrowLeft size={24} className="text-gray-600" />
+            </Link>
+            <h1 className="text-xl font-bold text-gray-800">创作中心</h1>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-bold mb-2">封面图片 URL</label>
-              <input name="cover_url" placeholder="https://..." className="w-full px-6 py-4 bg-gray-50 rounded-2xl focus:ring-4 focus:ring-blue-100 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-bold mb-2">视频嵌入 URL (YouTube/Bilibili)</label>
-              <input name="video_url" placeholder="粘贴视频地址..." className="w-full px-6 py-4 bg-gray-50 rounded-2xl focus:ring-4 focus:ring-blue-100 outline-none" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold mb-2">正文内容 (支持 HTML 格式)</label>
-            <textarea 
-              name="content" 
-              rows={15} 
-              placeholder="在这里自由创作... 您可以粘贴 HTML 代码来嵌入图片和视频。"
-              className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-none focus:ring-4 focus:ring-blue-100 transition-all font-mono"
-            />
-          </div>
-
-          <button disabled={loading} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-6 rounded-2xl font-black text-xl hover:opacity-90 transition shadow-xl shadow-blue-200">
-            {loading ? '正在同步至云端...' : '立即发表文章'}
+          <button 
+            form="post-form" 
+            disabled={loading}
+            className="flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition active:scale-95"
+          >
+            <Save size={20} />
+            {loading ? '发布中...' : '立即发表'}
           </button>
+        </div>
+      </nav>
+
+      <div className="max-w-4xl mx-auto mt-12 px-6">
+        <form id="post-form" onSubmit={handleSubmit} className="space-y-8">
+          {/* 标题区 */}
+          <input 
+            name="title" 
+            placeholder="在此输入标题..." 
+            required 
+            className="w-full text-5xl font-black placeholder:text-gray-200 border-none outline-none bg-transparent"
+          />
+
+          {/* 元数据设置区 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+            <div>
+              <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-2">封面图链接</label>
+              <input name="cover_url" placeholder="https://..." className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-blue-100 transition-all" />
+            </div>
+            <div>
+              <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-2">内容分类</label>
+              <select name="category" className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-blue-100 transition-all font-bold">
+                <option value="article">深度文章</option>
+                <option value="tool">工具推荐</option>
+                <option value="software">精品软件</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 富文本编辑器主体 */}
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+            <div id="editor" style={{ minHeight: '600px' }} className="text-lg leading-relaxed"></div>
+          </div>
         </form>
-      ) : (
-        /* 这里保留之前的发布工具表单... */
-        <div className="text-center p-20 bg-white rounded-[2.5rem]">工具发布模块已就绪</div>
-      )}
+      </div>
     </div>
   );
 }
