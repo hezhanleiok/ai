@@ -1,66 +1,60 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-// 必须是 ../ 才能跳出 app 文件夹找到根目录的 lib
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
+import { Search } from 'lucide-react';
 
 export default function Home() {
   const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('posts')
-          .select('*')
-          .eq('status', 'published')
-          .order('created_at', { ascending: false })
-          .limit(6); // 增加到显示6篇
-        
-        if (error) throw error;
-        setPosts(data || []);
-      } catch (err) {
-        console.error("加载失败:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPosts();
+    supabase.from('posts')
+      .select('*')
+      .eq('status', 'published')
+      .order('created_at', { ascending: false })
+      .limit(6)
+      .then(({ data }) => setPosts(data || []));
   }, []);
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-    </div>
-  );
-
   return (
-    <div className="max-w-7xl mx-auto px-4 py-16">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-        {posts.map(post => (
-          <Link href={`/articles/${post.id}`} key={post.id} className="group bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500">
-            {post.cover_url ? (
-              <img src={post.cover_url} className="w-full h-52 object-cover rounded-3xl mb-6" alt="封面" />
-            ) : (
-              <div className="w-full h-52 bg-gray-50 rounded-3xl mb-6 flex items-center justify-center text-gray-300 font-bold">无封面图</div>
-            )}
-            <h3 className="text-2xl font-black mb-4 group-hover:text-blue-600 transition-colors leading-tight">{post.title}</h3>
-            <div className="flex justify-between items-center text-sm">
-               <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full font-black uppercase tracking-tighter">{post.category || '未分类'}</span>
-               <span className="font-bold text-gray-400">阅读全文 →</span>
-            </div>
-          </Link>
-        ))}
-      </div>
-      
-      {posts.length === 0 && (
-        <div className="text-center py-32 bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-200">
-          <p className="text-gray-400 font-black text-xl italic uppercase tracking-widest">探索中... 暂无已发布的文章</p>
+    <div className="flex flex-col items-center">
+      {/* 找回中间 2026 搜索区域 */}
+      <section className="w-full max-w-4xl px-4 py-24 text-center">
+        <h1 className="text-6xl font-black mb-6 tracking-tighter text-gray-900">
+          发现 <span className="text-blue-600">2026 AI</span> 生产力 极限
+        </h1>
+        <p className="text-gray-400 font-bold text-xl mb-12">聚合全球顶尖 AI 工具，助力每一个数字游民开启自动化收益时代。</p>
+        
+        <div className="relative max-w-2xl mx-auto shadow-2xl shadow-blue-100 rounded-3xl overflow-hidden border border-gray-100">
+          <input type="text" placeholder="搜索你需要的 AI 工具 (中英文均可)..." className="w-full px-8 py-6 text-lg outline-none pr-32 font-medium" />
+          <button className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white px-8 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition">
+            <Search size={20}/> 搜索
+          </button>
         </div>
-      )}
+      </section>
+
+      {/* 文章展示区 */}
+      <section className="w-full max-w-7xl px-4 pb-24">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {posts.map(post => (
+            <Link href={`/articles/${post.id}`} key={post.id} className="group bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all">
+              <img src={post.cover_url || 'https://via.placeholder.com/400x200'} className="w-full h-48 object-cover rounded-3xl mb-6 shadow-inner" alt="封面" />
+              <h3 className="text-xl font-black mb-4 group-hover:text-blue-600 transition-colors leading-tight">{post.title}</h3>
+              <div className="flex justify-between items-center text-sm font-bold text-gray-400">
+                <span className="uppercase tracking-widest text-[10px]">{post.category}</span>
+                <span>阅读全文 →</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+        
+        {posts.length === 0 && (
+          <div className="text-center py-20 bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-200 text-gray-400 font-bold">
+            暂无发布的文章，请进入管理后台创作
+          </div>
+        )}
+      </section>
     </div>
   );
 }
