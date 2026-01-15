@@ -1,19 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation'; // 引入 useSearchParams 来获取搜索词
+import { useEffect, useState, Suspense } from 'react'; // 增加 Suspense
+import { useParams, useSearchParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 import Link from 'next/link';
 
-export default function CategoryPage() {
+// 将搜索逻辑抽离到一个子组件中，以便使用 useSearchParams
+function CategoryContent() {
   const { type } = useParams();
-  const searchParams = useSearchParams(); // 获取 URL 参数
-  const searchQuery = searchParams.get('search'); // 提取 search 关键词
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get('search'); // 获取 URL 里的 ?search=...
   
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 分类名称映射
   const titleMap: any = {
     'article': '深度文章',
     'software': '精品软件',
@@ -24,17 +24,17 @@ export default function CategoryPage() {
     const fetchCategoryPosts = async () => {
       setLoading(true);
       
-      // 开始构建查询请求
+      // 构建基础查询
       let query = supabase
         .from('posts')
         .select('*')
         .eq('status', 'published');
 
-      // 核心逻辑：如果有搜索词，则进行模糊搜索；否则按分类过滤
+      // 逻辑判断：如果有搜索词，则全表标题模糊搜索；否则按分类过滤
       if (searchQuery) {
-        query = query.ilike('title', `%${searchQuery}%`); // 模糊匹配标题
+        query = query.ilike('title', `%${searchQuery}%`);
       } else {
-        query = query.eq('category', type); // 按分类过滤
+        query = query.eq('category', type);
       }
 
       const { data } = await query.order('created_at', { ascending: false });
@@ -44,14 +44,13 @@ export default function CategoryPage() {
     };
 
     fetchCategoryPosts();
-  }, [type, searchQuery]); // 当分类或搜索词变化时重新加载
+  }, [type, searchQuery]); // 监听 type 或 searchQuery 的变化
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-16">
       <h1 className="text-4xl font-black mb-12 flex items-center gap-4">
         <span className="w-2 h-10 bg-blue-600 rounded-full"></span>
-        {/* 如果是搜索模式，显示搜索语；否则显示分类名 */}
-        {searchQuery ? `搜索结果: ${searchQuery}` : (titleMap[type as string] || '全部分类')}
+        {searchQuery ? `搜索: ${searchQuery}` : (titleMap[type as string] || '全部分类')}
       </h1>
 
       {loading ? (
@@ -65,16 +64,27 @@ export default function CategoryPage() {
               </div>
               <div className="p-8">
                 <h3 className="text-xl font-black mb-3 group-hover:text-blue-600 transition">{post.title}</h3>
-                <p className="text-gray-400 text-sm line-clamp-2 leading-relaxed">{post.content.replace(/<[^>]*>/g, '')}</p>
+                <p className="text-gray-400 text-sm line-clamp-2 leading-relaxed">
+                  {post.content.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                </p>
               </div>
             </Link>
           ))}
         </div>
       ) : (
         <div className="text-center py-20 bg-gray-50 rounded-[3rem] border-2 border-dashed">
-          <p className="text-gray-400 font-bold">未找到相关文章</p>
+          <p className="text-gray-400 font-bold">未找到相关内容</p>
         </div>
       )}
     </div>
+  );
+}
+
+// 主页面组件包裹在 Suspense 中
+export default function CategoryPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20">加载中...</div>}>
+      <CategoryContent />
+    </Suspense>
   );
 }
