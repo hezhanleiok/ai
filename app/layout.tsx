@@ -40,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="zh">
+      {/* 提示：Next.js 会自动从 public 文件夹读取 favicon.ico */}
       <body className="flex flex-col min-h-screen bg-[#fafafa]">
         <nav className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 h-20 flex justify-between items-center">
@@ -91,7 +92,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <a href="https://www.youtube.com/@xiaoheai" target="_blank" className="group transition hover:scale-125">
                 <Youtube size={40} className="text-gray-300 group-hover:text-red-600 transition-colors" />
               </a>
-              {/* 这里使用了 X 图标组件，不再是 Twitter 小鸟 */}
               <a href="https://x.com/xiaoheyiyi" target="_blank" className="group transition hover:scale-125">
                 <X size={36} className="text-gray-300 group-hover:text-black transition-colors" />
               </a>
@@ -108,7 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {showAuthModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
-            <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative shadow-2xl">
+            <div className="bg-white w-full max-md rounded-[2.5rem] p-10 relative shadow-2xl">
               <button onClick={() => setShowAuthModal(false)} className="absolute right-6 top-6 text-gray-300 hover:text-gray-600 transition"><X size={24}/></button>
               <h3 className="text-3xl font-black text-center mb-8">开始创作</h3>
               <form onSubmit={handleEmailAuth} className="space-y-4">
