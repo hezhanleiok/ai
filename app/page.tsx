@@ -7,6 +7,8 @@ import { Search } from 'lucide-react';
 
 export default function Home() {
   const [posts, setPosts] = useState<any[]>([]);
+  // 新增：中间搜索框的状态
+  const [searchKeyword, setSearchKeyword] = useState('');
 
   useEffect(() => {
     supabase.from('posts')
@@ -17,6 +19,14 @@ export default function Home() {
       .then(({ data }) => setPosts(data || []));
   }, []);
 
+  // 新增：搜索提交逻辑
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchKeyword.trim()) return;
+    // 跳转到分类页面并带上搜索参数，与导航栏搜索逻辑对齐
+    window.location.href = `/category/article?search=${encodeURIComponent(searchKeyword)}`;
+  };
+
   return (
     <div className="flex flex-col items-center">
       {/* 找回中间 2026 搜索区域 */}
@@ -26,12 +36,26 @@ export default function Home() {
         </h1>
         <p className="text-gray-400 font-bold text-xl mb-12">聚合全球顶尖 AI 工具，助力每一个数字游民开启自动化收益时代。</p>
         
-        <div className="relative max-w-2xl mx-auto shadow-2xl shadow-blue-100 rounded-3xl overflow-hidden border border-gray-100">
-          <input type="text" placeholder="搜索你需要的 AI 工具 (中英文均可)..." className="w-full px-8 py-6 text-lg outline-none pr-32 font-medium" />
-          <button className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white px-8 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition">
+        {/* 修复：将 div 改为 form 并绑定 onSubmit */}
+        <form 
+          onSubmit={handleSearch} 
+          className="relative max-w-2xl mx-auto shadow-2xl shadow-blue-100 rounded-3xl overflow-hidden border border-gray-100 bg-white"
+        >
+          <input 
+            type="text" 
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)} // 实时记录输入
+            placeholder="搜索你需要的 AI 工具 (中英文均可)..." 
+            className="w-full px-8 py-6 text-lg outline-none pr-32 font-medium" 
+          />
+          {/* 确保 button 是 type="submit" 以便响应回车键 */}
+          <button 
+            type="submit" 
+            className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white px-8 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition"
+          >
             <Search size={20}/> 搜索
           </button>
-        </div>
+        </form>
       </section>
 
       {/* 文章展示区 */}
