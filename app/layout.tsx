@@ -3,7 +3,7 @@
 import './globals.css'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Github, Youtube, Twitter, ShieldCheck, X, Mail, Search, UserCircle } from 'lucide-react'
+import { Github, Youtube, X, ShieldCheck, Mail, Search, UserCircle } from 'lucide-react'
 import { signInWithGithub } from '../lib/auth-client'
 import { supabase } from '../lib/supabase'
 
@@ -11,7 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [user, setUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [email, setEmail] = useState('');
-  const [searchQuery, setSearchQuery] = useState(''); // 新增：搜索内容状态
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
@@ -22,11 +22,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const adminUid = process.env.NEXT_PUBLIC_ADMIN_UID || '67863636-ae54-4697-9539-d383badc3e56';
   const isAdmin = user?.id === adminUid;
 
-  // 新增：处理搜索跳转逻辑
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-    // 带着关键词跳转到分类页
     window.location.href = `/category/article?search=${encodeURIComponent(searchQuery)}`;
   };
 
@@ -52,7 +50,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/category/software" className="hover:text-blue-600 transition">精品软件</Link>
                 <Link href="/category/article" className="hover:text-blue-600 transition">深度文章</Link>
                 
-                {/* 搜索框：现在具备提交功能 */}
                 <form onSubmit={handleSearch} className="relative group ml-4">
                   <input 
                     value={searchQuery}
@@ -85,6 +82,30 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <main className="flex-grow">{children}</main>
 
+        <footer className="bg-white border-t border-gray-100 py-16">
+          <div className="max-w-7xl mx-auto px-4 text-center">
+            <div className="flex justify-center space-x-12 mb-10">
+              <a href="https://github.com/hezhanleiok/ai/tree/main" target="_blank" className="group transition hover:scale-125">
+                <Github size={40} className="text-gray-300 group-hover:text-black transition-colors" />
+              </a>
+              <a href="https://www.youtube.com/@xiaoheai" target="_blank" className="group transition hover:scale-125">
+                <Youtube size={40} className="text-gray-300 group-hover:text-red-600 transition-colors" />
+              </a>
+              {/* 这里使用了 X 图标组件，不再是 Twitter 小鸟 */}
+              <a href="https://x.com/xiaoheyiyi" target="_blank" className="group transition hover:scale-125">
+                <X size={36} className="text-gray-300 group-hover:text-black transition-colors" />
+              </a>
+            </div>
+            
+            <div className="flex justify-center space-x-12 text-base font-black text-gray-600 uppercase tracking-widest mb-8">
+              <Link href="/about" className="hover:text-blue-600 transition">关于我们</Link>
+              <Link href="/privacy" className="hover:text-blue-600 transition">隐私政策</Link>
+              <Link href="/contact" className="hover:text-blue-600 transition">联系合作</Link>
+            </div>
+            <p className="text-gray-300 text-[10px] font-black italic tracking-widest uppercase">© 2026 AI HUB | 赋能数字游民</p>
+          </div>
+        </footer>
+
         {showAuthModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
             <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative shadow-2xl">
@@ -99,30 +120,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
         )}
-
-        <footer className="bg-white border-t border-gray-100 py-16">
-          <div className="max-w-7xl mx-auto px-4 text-center">
-            {/* 社交链接：已填入你的真实地址 */}
-            <div className="flex justify-center space-x-12 mb-10">
-              <a href="https://github.com/hezhanlei" target="_blank" className="group transition hover:scale-125">
-                <Github size={40} className="text-gray-300 group-hover:text-black transition-colors" />
-              </a>
-              <a href="https://youtube.com/@hezhanlei" target="_blank" className="group transition hover:scale-125">
-                <Youtube size={40} className="text-gray-300 group-hover:text-red-600 transition-colors" />
-              </a>
-              <a href="https://x.com/hezhanlei" target="_blank" className="group transition hover:scale-125">
-                <Twitter size={40} className="text-gray-300 group-hover:text-blue-400 transition-colors" />
-              </a>
-            </div>
-            
-            <div className="flex justify-center space-x-12 text-base font-black text-gray-600 uppercase tracking-widest mb-8">
-              <Link href="/about" className="hover:text-blue-600 transition">关于我们</Link>
-              <Link href="/privacy" className="hover:text-blue-600 transition">隐私政策</Link>
-              <Link href="/contact" className="hover:text-blue-600 transition">联系合作</Link>
-            </div>
-            <p className="text-gray-300 text-[10px] font-black italic tracking-widest uppercase">© 2026 AI HUB | 赋能数字游民</p>
-          </div>
-        </footer>
       </body>
     </html>
   )
