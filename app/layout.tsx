@@ -40,7 +40,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="zh">
-      {/* 提示：Next.js 会自动从 public 文件夹读取 favicon.ico */}
+      <head>
+        {/* 强制浏览器使用高清图标和苹果设备大图标 */}
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+      </head>
       <body className="flex flex-col min-h-screen bg-[#fafafa]">
         <nav className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 h-20 flex justify-between items-center">
@@ -108,7 +113,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {showAuthModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
-            <div className="bg-white w-full max-md rounded-[2.5rem] p-10 relative shadow-2xl">
+            <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative shadow-2xl">
               <button onClick={() => setShowAuthModal(false)} className="absolute right-6 top-6 text-gray-300 hover:text-gray-600 transition"><X size={24}/></button>
               <h3 className="text-3xl font-black text-center mb-8">开始创作</h3>
               <form onSubmit={handleEmailAuth} className="space-y-4">
