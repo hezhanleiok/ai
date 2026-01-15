@@ -3,7 +3,7 @@
 import './globals.css'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Github, Youtube, Twitter, ShieldCheck, X, Mail, UserCircle } from 'lucide-react'
+import { Github, Youtube, Twitter, ShieldCheck, X, Mail, Search, UserCircle } from 'lucide-react'
 import { signInWithGithub } from '../lib/auth-client'
 import { supabase } from '../lib/supabase'
 
@@ -11,6 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [user, setUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [email, setEmail] = useState('');
+  const [searchQuery, setSearchQuery] = useState(''); // 新增：搜索内容状态
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
@@ -20,6 +21,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   const adminUid = process.env.NEXT_PUBLIC_ADMIN_UID || '67863636-ae54-4697-9539-d383badc3e56';
   const isAdmin = user?.id === adminUid;
+
+  // 新增：处理搜索跳转逻辑
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    // 带着关键词跳转到分类页
+    window.location.href = `/category/article?search=${encodeURIComponent(searchQuery)}`;
+  };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +51,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/" className="hover:text-blue-600 transition">首页</Link>
                 <Link href="/category/software" className="hover:text-blue-600 transition">精品软件</Link>
                 <Link href="/category/article" className="hover:text-blue-600 transition">深度文章</Link>
+                
+                {/* 搜索框：现在具备提交功能 */}
+                <form onSubmit={handleSearch} className="relative group ml-4">
+                  <input 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    type="text" 
+                    placeholder="搜索内容..." 
+                    className="bg-gray-100 border-none rounded-2xl py-2 px-4 pl-10 focus:ring-2 focus:ring-blue-100 outline-none w-48 transition-all group-hover:w-64 text-sm font-bold" 
+                  />
+                  <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                </form>
+
                 {isAdmin && (
                   <Link href="/admin" className="text-red-500 flex items-center gap-1 font-black bg-red-50 px-3 py-1 rounded-full animate-pulse"><ShieldCheck size={16}/> 管理后台</Link>
                 )}
@@ -80,12 +102,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <footer className="bg-white border-t border-gray-100 py-16">
           <div className="max-w-7xl mx-auto px-4 text-center">
+            {/* 社交链接：已填入你的真实地址 */}
             <div className="flex justify-center space-x-12 mb-10">
-              <a href="#" className="group transition hover:scale-125"><Github size={40} className="text-gray-300 group-hover:text-black transition-colors" /></a>
-              <a href="#" className="group transition hover:scale-125"><Youtube size={40} className="text-gray-300 group-hover:text-red-600 transition-colors" /></a>
-              <a href="#" className="group transition hover:scale-125"><Twitter size={40} className="text-gray-300 group-hover:text-blue-400 transition-colors" /></a>
+              <a href="https://github.com/hezhanlei" target="_blank" className="group transition hover:scale-125">
+                <Github size={40} className="text-gray-300 group-hover:text-black transition-colors" />
+              </a>
+              <a href="https://youtube.com/@hezhanlei" target="_blank" className="group transition hover:scale-125">
+                <Youtube size={40} className="text-gray-300 group-hover:text-red-600 transition-colors" />
+              </a>
+              <a href="https://x.com/hezhanlei" target="_blank" className="group transition hover:scale-125">
+                <Twitter size={40} className="text-gray-300 group-hover:text-blue-400 transition-colors" />
+              </a>
             </div>
-            {/* 字体已调大：text-base (16px)，颜色已加深：text-gray-600 */}
+            
             <div className="flex justify-center space-x-12 text-base font-black text-gray-600 uppercase tracking-widest mb-8">
               <Link href="/about" className="hover:text-blue-600 transition">关于我们</Link>
               <Link href="/privacy" className="hover:text-blue-600 transition">隐私政策</Link>
